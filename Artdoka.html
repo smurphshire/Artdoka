@@ -1,0 +1,1443 @@
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artdoka Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        jidoka: {
+                            prework: '#64748b',
+                            starting: '#3b82f6',
+                            inprogress: '#0d9488',
+                            finalizing: '#8b5cf6',
+
+                            complete: '#10b981',
+                            shipped: '#06b6d4',
+                            aborted: '#ef4444'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbars for dashboard feel */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+
+            background: #3f3f46;
+            border-radius: 2px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+
+        /* High-visibility fixes for native HTML5 calendar/date pickers inside dark themes */
+        .dark input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.8) sepia(100%) saturate(200%) hue-rotate(130deg);
+            cursor: pointer;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-slate-200 text-slate-800 dark:bg-zinc-950 dark:text-zinc-200 font-sans transition-colors duration-200 h-screen overflow-hidden flex flex-col">
+
+    <!-- TOP TOOLBAR -->
+
+    <header class="bg-slate-300 dark:bg-zinc-900 border-b border-slate-400/40 dark:border-zinc-800 h-14 min-h-14 flex items-center justify-between px-6 z-10">
+        <div class="flex items-center space-x-3">
+            <!-- Jidoka Icon Symbol -->
+            <div class="bg-teal-600 text-white px-2 py-0.5 rounded-sm font-bold tracking-wider text-xs">Artdoka</div>
+            <h1 class="text-lg font-bold tracking-tight text-slate-800 dark:text-zinc-300">
+                Art Director Dashboard
+            </h1>
+        </div>
+
+        <!-- Center Controls: Filters & Search -->
+        <div class="flex items-center space-x-2 flex-1 max-w-xl mx-8">
+            <div class="relative w-1/3">
+                <select id="filterClass" onchange="renderJobs()" class="w-full pl-2 pr-6 py-1 text-sm rounded-sm bg-slate-100 dark:bg-zinc-900 border border-slate-400/40 dark:border-zinc-800 dark:text-zinc-300 focus:ring-1 focus:ring-teal-500 cursor-pointer">
+                    <option value="all">All Job Classes</option>
+                </select>
+            </div>
+            <div class="relative w-1/3">
+                <select id="filterStatus" onchange="renderJobs()" class="w-full pl-2 pr-6 py-1 text-sm rounded-sm bg-slate-100 dark:bg-zinc-900 border border-slate-400/40 dark:border-zinc-800 dark:text-zinc-300 focus:ring-1 focus:ring-teal-500 cursor-pointer">
+                    <option value="all">All Statuses</option>
+
+                    <option value="Prework">Prework</option>
+                    <option value="Starting">Starting</option>
+                    <option value="In-Progress">In-Progress</option>
+                    <option value="Finalizing">Finalizing</option>
+                    <option value="Complete">Complete</option>
+                    <option value="Shipped">Shipped</option>
+                    <option value="Aborted">Aborted</option>
+                </select>
+            </div>
+            <div class="relative w-1/3">
+                <select id="sortBy" onchange="renderJobs()" class="w-full pl-2 pr-6 py-1 text-sm rounded-sm bg-slate-100 dark:bg-zinc-900 border border-slate-400/40 dark:border-zinc-800 dark:text-zinc-300 focus:ring-1 focus:ring-teal-500 cursor-pointer">
+                    <option value="jobNumber">Sort by Job #</option>
+                    <option value="dueDate">Sort by Due Date</option>
+                    <option value="jobName">Sort by Name</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Right System Controls -->
+
+        <div class="flex items-center space-x-2">
+            <!-- Import Button -->
+            <button onclick="document.getElementById('importCsvInput').click()" title="Import CSV" class="p-1.5 rounded-sm hover:bg-slate-400/20 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-400 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+            </button>
+            <input type="file" id="importCsvInput" accept=".csv" class="hidden" onchange="handleCsvImport(event)">
+
+            <!-- Export Button -->
+            <button onclick="exportToCsv()" title="Export CSV" class="p-1.5 rounded-sm hover:bg-slate-400/20 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-400 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            </button>
+
+            <!-- Graveyard Trigger -->
+            <button onclick="toggleModal('graveyardModal', true)" title="Graveyard (Archive)" class="p-1.5 rounded-sm hover:bg-slate-400/20 dark:hover:bg-zinc-800 text-red-400 transition relative">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                <span id="graveyardCount" class="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold hidden">0</span>
+            </button>
+
+            <!-- Light/Dark Toggle -->
+
+            <button onclick="toggleTheme()" title="Toggle Theme" class="p-1.5 rounded-sm hover:bg-slate-400/20 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-400 transition">
+                <svg id="themeMoon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                <svg id="themeSun" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M16.242 17.657l.707.707M6.343 6.343l.707-.707M12 7a5 5 0 100 10 5 5 0 000-10z" /></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN BODY CONTAINER -->
+    <div class="flex flex-1 overflow-hidden">
+
+        <!-- LEFT SIDEBAR -->
+        <aside class="w-72 min-w-72 bg-slate-300 dark:bg-zinc-900 border-r border-slate-400/40 dark:border-zinc-800 flex flex-col h-full overflow-y-auto p-4 space-y-5">
+            
+            <!-- SECTION 1: ARTIST CHECK-IN -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between border-b border-slate-400/30 dark:border-zinc-800 pb-1.5">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-zinc-400 flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                        Artist Roster
+
+                    </h2>
+                    <button onclick="toggleModal('artistModal', true)" class="text-[11px] bg-teal-600 hover:bg-teal-700 text-white font-semibold px-2 py-0.5 rounded-sm transition">
+                        + Check-In
+                    </button>
+                </div>
+                <!-- Checked-in Artists List -->
+                <div id="artistList" class="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                    <!-- Rendered dynamically -->
+                </div>
+            </div>
+
+            <!-- SECTION 2: TASKS AREA -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between border-b border-slate-400/30 dark:border-zinc-800 pb-1.5">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-zinc-400 flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                        Global Tasks
+                    </h2>
+                    <button onclick="toggleModal('taskModal', true)" class="text-[11px] bg-teal-600 hover:bg-teal-700 text-white font-semibold px-2 py-0.5 rounded-sm transition">
+
+                        + Add Task
+                    </button>
+                </div>
+                <!-- Global Tasks List -->
+                <div id="taskList" class="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                    <!-- Rendered dynamically -->
+                </div>
+            </div>
+
+            <!-- SECTION 3: BULLETIN BOARD -->
+            <div class="space-y-2 flex-1 flex flex-col min-h-[140px]">
+                <div class="flex items-center justify-between border-b border-slate-400/30 dark:border-zinc-800 pb-1.5">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-zinc-400 flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                        Bulletin Notes
+                    </h2>
+                </div>
+                <!-- Quick input -->
+                <div class="flex gap-2">
+
+                    <input type="text" id="bulletinInput" placeholder="Type note & hit Enter..." onkeydown="if(event.key==='Enter') addBulletinNote(); else if(event.key==='Escape' && editingBulletinId) cancelBulletinEdit();" class="flex-1 text-xs px-2 py-1 rounded-sm bg-slate-100 dark:bg-zinc-950 border border-slate-400/40 dark:border-zinc-800 dark:text-zinc-300 focus:ring-1 focus:ring-teal-500">
+                </div>
+                <!-- Sticky note container -->
+                <div id="bulletinBoard" class="grid grid-cols-2 gap-1.5 overflow-y-auto flex-1 pr-1">
+                    <!-- Rendered dynamically -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN VIEW AREA (RIGHT) -->
+        <main class="flex-1 flex flex-col overflow-hidden bg-slate-100 dark:bg-zinc-950">
+            <!-- Board Action Header Grid Title -->
+            <div class="px-6 py-3 flex items-center justify-between bg-slate-50 dark:bg-zinc-900 border-b border-slate-300 dark:border-zinc-800">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-800 dark:text-zinc-300">Active Job Pipeline</h2>
+                </div>
+                <button onclick="toggleModal('jobModal', true)" class="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-3 py-1 rounded-sm text-xs transition flex items-center gap-1.5 shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                    Create Job Card
+
+                </button>
+            </div>
+
+            <!-- JOB CARDS CONTAINER GRID -->
+            <div id="jobBoard" class="flex-1 overflow-y-auto p-4 grid grid-cols-1 xl:grid-cols-2 gap-4 align-start">
+                <!-- Rendered dynamically -->
+            </div>
+        </main>
+    </div>
+
+    <!-- CUSTOM BANNER MESSAGE NOTIFICATION SYSTEM -->
+    <div id="toastNotification" class="fixed bottom-4 right-4 max-w-sm w-full bg-slate-900 text-neutral-100 dark:bg-zinc-900 dark:text-zinc-200 shadow-xl rounded-sm p-3 transform translate-y-24 opacity-0 transition-all duration-200 z-50 flex items-start gap-2 border border-slate-700 dark:border-zinc-800">
+        <div id="toastIcon" class="p-0.5 text-teal-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        </div>
+        <div class="flex-1 text-xs">
+            <h3 id="toastTitle" class="font-bold uppercase tracking-wider text-teal-400">System Alert</h3>
+            <p id="toastMessage" class="mt-0.5 text-slate-300 dark:text-zinc-400"></p>
+        </div>
+
+        <button onclick="dismissToast()" class="text-slate-400 hover:text-neutral-200">&times;</button>
+    </div>
+
+    <!-- MODAL 1: ARTIST CHECK-IN -->
+    <div id="artistModal" class="fixed inset-0 bg-zinc-950/70 backdrop-blur-xs z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-100 dark:bg-zinc-900 w-full max-w-md rounded-md shadow-2xl p-5 overflow-y-auto max-h-[90vh] border border-slate-400/40 dark:border-zinc-800">
+            <div class="flex justify-between items-center border-b border-slate-300 dark:border-zinc-800 pb-2 mb-3">
+                <h3 id="artistModalTitle" class="text-sm font-bold text-slate-800 dark:text-zinc-300">Add Artist Profile</h3>
+                <button onclick="toggleModal('artistModal', false)" class="text-xl hover:text-slate-400">&times;</button>
+            </div>
+            <form id="artistForm" onsubmit="saveArtist(event)" class="space-y-3 text-xs">
+                <div class="grid grid-cols-4 gap-2">
+                    <div>
+                        <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Emoji</label>
+                        <select id="artEmoji" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300">
+                            <option>🎨</option><option>✏️</option><option>📸</option><option>💻</option><option>🕶️</option><option>👾</option><option>✨</option>
+                        </select>
+                    </div>
+                    <div class="col-span-3">
+
+                        <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Artist Name</label>
+                        <input type="text" id="artName" required class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300 focus:ring-1 focus:ring-teal-500">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Phone</label>
+                        <input type="text" id="artPhone" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Email</label>
+                        <input type="email" id="artEmail" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Status</label>
+                        <select id="artStatus" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300">
+                            <option value="Available">Available</option>
+
+                            <option value="Busy">Busy</option>
+                            <option value="On Break">On Break</option>
+                            <option value="Off-Shift">Off-Shift</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Shift Hours</label>
+                        <input type="text" id="artHours" placeholder="e.g. 9AM - 5PM" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 border-neutral-800 dark:text-zinc-300">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Preferred Job Classes (Comma Separated)</label>
+                    <input type="text" id="artClasses" placeholder="e.g. Illustration, Vector" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Daily Notes</label>
+                    <textarea id="artNotes" rows="2" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300"></textarea>
+                </div>
+                <div class="flex justify-end gap-2 pt-1">
+
+                    <button type="button" onclick="toggleModal('artistModal', false)" class="px-3 py-1.5 bg-slate-300 dark:bg-zinc-800 rounded-sm hover:bg-slate-400/50 dark:text-zinc-300 transition">Cancel</button>
+                    <button type="submit" class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-sm transition">Save Profile</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: TASK CREATE -->
+    <div id="taskModal" class="fixed inset-0 bg-zinc-950/70 backdrop-blur-xs z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-100 dark:bg-zinc-900 w-full max-w-md rounded-md shadow-2xl p-5 border border-slate-400/40 dark:border-zinc-800">
+            <div class="flex justify-between items-center border-b border-slate-300 dark:border-zinc-800 pb-2 mb-3">
+                <h3 id="taskModalTitle" class="text-sm font-bold text-slate-800 dark:text-zinc-300">Add Global Task Entry</h3>
+                <button onclick="toggleModal('taskModal', false)" class="text-xl hover:text-slate-400">&times;</button>
+            </div>
+            <form id="taskForm" onsubmit="saveTask(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Task Name</label>
+                    <input type="text" id="tskName" required class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300 focus:ring-1 focus:ring-teal-500">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Due Date</label>
+                    <input type="date" id="tskDue" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Short Description</label>
+                    <input type="text" id="tskDesc" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Material Needs</label>
+                    <input type="text" id="tskMaterials" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Notes</label>
+                    <textarea id="tskNotes" rows="2" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300"></textarea>
+                </div>
+                <div class="flex justify-end gap-2 pt-1">
+                    <button type="button" onclick="toggleModal('taskModal', false)" class="px-3 py-1.5 bg-slate-300 dark:bg-zinc-800 rounded-sm hover:bg-slate-400/50 dark:text-zinc-300 transition">Cancel</button>
+                    <button type="submit" class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-sm transition">Add Task</button>
+
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: JOB CARD ENTRY -->
+    <div id="jobModal" class="fixed inset-0 bg-zinc-950/70 backdrop-blur-xs z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-100 dark:bg-zinc-900 w-full max-w-2xl rounded-md shadow-2xl p-5 overflow-y-auto max-h-[90vh] border border-slate-400/40 dark:border-zinc-800">
+            <div class="flex justify-between items-center border-b border-slate-300 dark:border-zinc-800 pb-2 mb-3">
+                <h3 id="jobModalTitle" class="text-sm font-bold text-slate-800 dark:text-zinc-300">Configure Production Job Card</h3>
+                <button onclick="toggleModal('jobModal', false)" class="text-xl hover:text-slate-400">&times;</button>
+            </div>
+            <form id="jobForm" onsubmit="saveJob(event)" class="space-y-3 text-xs">
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-semibold text-teal-600 dark:text-teal-400 mb-1">Job Number *</label>
+                        <input type="text" id="jobNum" required placeholder="e.g. 0023" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300 font-mono focus:ring-1 focus:ring-teal-500">
+                    </div>
+                    <div class="col-span-2">
+
+                        <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Job Project Name *</label>
+                        <input type="text" id="jobName" required class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300 focus:ring-1 focus:ring-teal-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Client Name</label>
+                        <input type="text" id="jobClient" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Job Classes Keywords (Comma separated)</label>
+                        <input type="text" id="jobClasses" placeholder="e.g. Illustration, Vector" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Start Date</label>
+
+                        <input type="date" id="jobStart" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Due Date</label>
+                        <input type="date" id="jobDue" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Asset Count</label>
+                        <input type="number" id="jobAssetCount" value="1" min="0" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Finished File Type</label>
+                        <input type="text" id="jobFileType" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Medium Output</label>
+
+                        <select id="jobMedium" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300">
+                            <option value="Both">Both Physical & Digital</option>
+                            <option value="Digital">Digital Only</option>
+                            <option value="Physical">Physical Only</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Pipeline Status</label>
+                        <select id="jobStatus" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300 font-medium">
+                            <option value="Prework">Prework</option>
+                            <option value="Starting">Starting</option>
+                            <option value="In-Progress">In-Progress</option>
+                            <option value="Finalizing">Finalizing</option>
+                            <option value="Complete">Complete</option>
+                            <option value="Shipped">Shipped</option>
+                            <option value="Aborted">Aborted</option>
+                        </select>
+                    </div>
+                </div>
+
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-semibold text-teal-600 dark:text-teal-400 mb-1">Assigned Studio Artist</label>
+                        <select id="jobArtist" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300 font-medium">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Reference Artwork Preview Image</label>
+                    <input type="file" id="jobImageFile" accept="image/*,application/pdf" onchange="processJobCardImage(this)" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-2 file:rounded-sm file:border-0 file:bg-teal-600/10 file:text-teal-600 cursor-pointer">
+                    <input type="hidden" id="jobImageBase64">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Material Resource Needs</label>
+                    <input type="text" id="jobMaterials" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300">
+                </div>
+
+
+                <div>
+                    <label class="block text-[10px] font-medium mb-1 dark:text-zinc-400">Comprehensive Production Notes</label>
+                    <textarea id="jobNotes" rows="3" class="w-full rounded-sm p-1.5 bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 dark:text-zinc-300"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-300 dark:border-zinc-800">
+                    <button type="button" onclick="toggleModal('jobModal', false)" class="px-3 py-1.5 bg-slate-300 dark:bg-zinc-800 rounded-sm hover:bg-slate-400/50 dark:text-zinc-300 transition">Cancel</button>
+                    <button type="submit" class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-sm transition">Publish Job Card</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 4: GRAVEYARD LIST -->
+    <div id="graveyardModal" class="fixed inset-0 bg-zinc-950/70 backdrop-blur-xs z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-100 dark:bg-zinc-900 w-full max-w-xl rounded-md shadow-2xl p-5 border border-slate-400/40 dark:border-zinc-800">
+            <div class="flex justify-between items-center border-b border-slate-300 dark:border-zinc-800 pb-2 mb-3">
+                <div class="flex items-center gap-1.5 text-red-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+
+                    <h3 class="text-sm font-bold dark:text-zinc-300">Board Graveyard (Archived Jobs)</h3>
+                </div>
+                <button onclick="toggleModal('graveyardModal', false)" class="text-xl hover:text-slate-400">&times;</button>
+            </div>
+            
+            <div id="graveyardList" class="space-y-1.5 max-h-[45vh] overflow-y-auto pr-1 text-xs">
+                <!-- Rendered dynamically -->
+                <p class="text-slate-400 text-center py-4">No jobs currently rest in the graveyard.</p>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-300 dark:border-zinc-800 mt-3">
+                <button onclick="toggleModal('graveyardModal', false)" class="px-3 py-1.5 bg-slate-300 dark:bg-zinc-800 rounded-sm hover:bg-slate-400/50 dark:text-zinc-300 transition">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PIPELINE APP CORE DATABASE ENGINE CODE -->
+    <script>
+        let database = {
+
+            artists: [],
+            tasks: [],
+            bulletins: [],
+            jobs: []
+        };
+
+        let editingArtistId = null;
+        let editingTaskId = null;
+        let editingBulletinId = null;
+        let editingJobNumber = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const preservedData = localStorage.getItem('art_director_jidoka_board');
+            if(preservedData) {
+                try {
+                    database = JSON.parse(preservedData);
+                } catch(e) {
+                    showToast("Error Loading Saved Storage Data", "Resetting architecture cache.", "text-red-500");
+                }
+
+            }
+            if(database.jobs.length === 0 && database.artists.length === 0) {
+                loadSeedMockArchitectureData();
+            }
+            refreshSystemBoardViews();
+        });
+
+        function persistState() {
+            localStorage.setItem('art_director_jidoka_board', JSON.stringify(database));
+        }
+
+        function loadSeedMockArchitectureData() {
+            database.artists = [
+                { id: '1', emoji: '🎨', name: 'Alex Rivera', phone: '555-0192', email: 'alex@studio.com', status: 'Available', hours: '8AM - 4PM', classes: 'Illustration, Vector, Print', notes: 'Finishing up style guides.' },
+                { id: '2', emoji: '💻', name: 'Sarah Chen', phone: '555-3841', email: 'sarah@studio.com', status: 'Available', hours: '10AM - 6PM', classes: '3D, UI Design, Web', notes: 'Rendering heavy keyframes.' }
+            ];
+            database.tasks = [
+                { id: '1', name: 'Calibrate PANTONE proof plotter', due: '2026-10-02', desc: 'Hardware team update needed', materials: 'Color Spectrometer', notes: 'Critical for high-fidelity print matches.' }
+            ];
+
+            database.bulletins = [
+                { id: '1', text: 'Client review check-in scheduled daily at 3 PM EST.' },
+                { id: '2', text: 'New asset server path operational: /vfx/renders/2026' }
+            ];
+            database.jobs = [
+                {
+                    jobNumber: '9021',
+                    jobName: 'Cybernetic Neon Poster Pack',
+                    clientName: 'Metropolis Entertainment',
+                    classes: ['Print', 'Illustration', 'Vector'],
+                    startDate: '2026-09-20',
+                    dueDate: '2026-10-15',
+                    assetCount: 12,
+                    fileType: 'PSD (CMYK 300DPI)',
+                    medium: 'Physical',
+                    materials: 'Metallic foil inks, matte paper stock samples',
+                    notes: 'Aesthetic requires deep high-contrast tones with heavy saturation layers. Final vectors must be expanded before rendering plot files.',
+                    status: 'In-Progress',
+                    archived: false,
+
+                    imageBase64: '',
+                    assignedArtistId: '1'
+                },
+                {
+                    jobNumber: '4412',
+                    jobName: 'Immersive Dashboard Engine Web UI',
+                    clientName: 'Apex Data Labs',
+                    classes: ['Web', 'UI Design'],
+                    startDate: '2026-09-25',
+                    dueDate: '2026-09-27',
+                    assetCount: 4,
+                    fileType: 'Figma Dev Token / Component Set',
+                    medium: 'Digital',
+                    materials: 'Responsive web layout framework targets',
+                    notes: 'Ensure light and dark variants match design tokens smoothly. Provide high resolution preview exports.',
+                    status: 'Starting',
+                    archived: false,
+                    imageBase64: '',
+                    assignedArtistId: ''
+
+                }
+            ];
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            if(html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                document.getElementById('themeSun').classList.add('hidden');
+                document.getElementById('themeMoon').classList.remove('hidden');
+            } else {
+                html.classList.add('dark');
+                document.getElementById('themeMoon').classList.add('hidden');
+                document.getElementById('themeSun').classList.remove('hidden');
+            }
+        }
+
+        function toggleModal(modalId, showStatus) {
+            const el = document.getElementById(modalId);
+
+            if(showStatus) {
+                if (modalId === 'jobModal') {
+                    populateJobArtistSelect(editingJobNumber ? database.jobs.find(j => j.jobNumber === editingJobNumber).assignedArtistId : null);
+                }
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+                if (modalId === 'artistModal') {
+                    editingArtistId = null;
+                    document.getElementById('artistModalTitle').innerText = "Add Artist Profile";
+                    document.getElementById('artistForm').reset();
+                }
+                if (modalId === 'taskModal') {
+                    editingTaskId = null;
+                    document.getElementById('taskModalTitle').innerText = "Add Global Task Entry";
+                    document.getElementById('taskForm').reset();
+                }
+                if (modalId === 'jobModal') {
+                    editingJobNumber = null;
+
+                    document.getElementById('jobModalTitle').innerText = "Configure Production Job Card";
+                    document.getElementById('jobForm').reset();
+                    document.getElementById('jobImageBase64').value = '';
+                }
+            }
+        }
+
+        function showToast(title, message) {
+            const toast = document.getElementById('toastNotification');
+            document.getElementById('toastTitle').innerText = title;
+            document.getElementById('toastMessage').innerText = message;
+            
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            
+            setTimeout(() => { dismissToast(); }, 4000);
+        }
+
+        function dismissToast() {
+
+            const toast = document.getElementById('toastNotification');
+            toast.classList.remove('translate-y-0', 'opacity-100');
+            toast.classList.add('translate-y-24', 'opacity-0');
+        }
+
+        function rebuildClassFilters() {
+            const filterSelect = document.getElementById('filterClass');
+            const activeSelection = filterSelect.value;
+            
+            let classesSet = new Set();
+            database.jobs.forEach(job => {
+                if(job.classes && Array.isArray(job.classes)) {
+                    job.classes.forEach(cls => {
+                        if(cls.trim()) classesSet.add(cls.trim());
+                    });
+                }
+            });
+
+            filterSelect.innerHTML = '<option value="all">All Job Classes</option>';
+
+            classesSet.forEach(cls => {
+                const opt = document.createElement('option');
+                opt.value = cls;
+                opt.textContent = cls;
+                if(cls === activeSelection) opt.selected = true;
+                filterSelect.appendChild(opt);
+            });
+        }
+
+        function buildArtistDropdownOptionsHtml(jobClassesArray, currentAssignedId) {
+            let html = '<option value="">-- Unassigned (Muted Pool) --</option>';
+            const normalizedJobClasses = (jobClassesArray || []).map(c => c.toLowerCase().trim());
+
+            database.artists.forEach(a => {
+                const artistKeywords = a.classes ? a.classes.split(',').map(c => c.trim().toLowerCase()) : [];
+                const hasMatchingSkills = artistKeywords.some(k => normalizedJobClasses.includes(k));
+                const compatibilityIndicator = hasMatchingSkills ? '⭐ ' : '';
+                const shiftAvailability = a.status === 'Available' ? '' : ` (${a.status})`;
+
+
+                html += `<option value="${a.id}" ${currentAssignedId === a.id ? 'selected' : ''}>${compatibilityIndicator}${a.name}${shiftAvailability}</option>`;
+            });
+            return html;
+        }
+
+        function populateJobArtistSelect(selectedArtistId, explicitClassesStr = null) {
+            const selectEl = document.getElementById('jobArtist');
+            let classesArr = [];
+            if (explicitClassesStr !== null) {
+                classesArr = explicitClassesStr.split(',').map(c => c.trim()).filter(Boolean);
+            } else {
+                const rawInput = document.getElementById('jobClasses').value;
+                classesArr = rawInput ? rawInput.split(',').map(c => c.trim()).filter(Boolean) : [];
+            }
+            selectEl.innerHTML = buildArtistDropdownOptionsHtml(classesArr, selectedArtistId);
+        }
+
+        document.getElementById('jobClasses').addEventListener('input', (e) => {
+            const currentSelectVal = document.getElementById('jobArtist').value;
+
+            populateJobArtistSelect(currentSelectVal, e.target.value);
+        });
+
+        // ARTIST CRUD
+        function editArtist(id) {
+            const a = database.artists.find(item => item.id === id);
+            if (!a) return;
+            editingArtistId = id;
+            document.getElementById('artistModalTitle').innerText = "Edit Artist Profile";
+            document.getElementById('artEmoji').value = a.emoji;
+            document.getElementById('artName').value = a.name;
+            document.getElementById('artPhone').value = a.phone;
+            document.getElementById('artEmail').value = a.email;
+            document.getElementById('artStatus').value = a.status;
+            document.getElementById('artHours').value = a.hours;
+            document.getElementById('artClasses').value = a.classes;
+            document.getElementById('artNotes').value = a.notes;
+            toggleModal('artistModal', true);
+        }
+
+
+        function saveArtist(e) {
+            e.preventDefault();
+            const payload = {
+                emoji: document.getElementById('artEmoji').value,
+                name: document.getElementById('artName').value,
+                phone: document.getElementById('artPhone').value,
+                email: document.getElementById('artEmail').value,
+                status: document.getElementById('artStatus').value,
+                hours: document.getElementById('artHours').value,
+                classes: document.getElementById('artClasses').value,
+                notes: document.getElementById('artNotes').value
+            };
+
+            if (editingArtistId) {
+                const index = database.artists.findIndex(a => a.id === editingArtistId);
+                if (index !== -1) {
+                    database.artists[index] = { ...database.artists[index], ...payload };
+                    showToast("Artist Updated", `${payload.name}'s context modified.`);
+                }
+
+            } else {
+                const artist = { id: Date.now().toString(), ...payload };
+                database.artists.push(artist);
+                showToast("Artist Processed", `${artist.name} checked into active session.`);
+            }
+
+            persistState();
+            toggleModal('artistModal', false);
+            refreshSystemBoardViews();
+        }
+
+        function removeArtist(id) {
+            database.artists = database.artists.filter(a => a.id !== id);
+            database.jobs.forEach(j => { if(j.assignedArtistId === id) j.assignedArtistId = ''; });
+            persistState();
+            refreshSystemBoardViews();
+        }
+
+        function renderArtists() {
+
+            const container = document.getElementById('artistList');
+            container.innerHTML = '';
+            if(database.artists.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-500 italic py-1">No checked-in operators.</p>';
+                return;
+            }
+            database.artists.forEach(a => {
+                const statusColor = a.status === 'Available' ? 'bg-teal-500' : a.status === 'Busy' ? 'bg-yellow-500' : 'bg-slate-400';
+                const el = document.createElement('div');
+                el.className = "p-2 rounded-sm bg-slate-50 dark:bg-zinc-900 border border-slate-400/30 dark:border-zinc-800 relative group flex gap-2 items-start text-xs text-left";
+                el.innerHTML = `
+                    <div class="text-lg p-0.5 bg-slate-200 dark:bg-zinc-950 rounded-sm">${a.emoji}</div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-1 font-bold">
+                            <span class="truncate text-slate-800 dark:text-zinc-300 text-sm">${a.name}</span>
+                            <span class="w-1.5 h-1.5 rounded-full ${statusColor}"></span>
+                        </div>
+                        <div class="text-slate-500 dark:text-zinc-400 text-[11px] truncate">${a.hours || 'Unset'}</div>
+                        <div class="mt-0.5 text-[10px] flex flex-wrap gap-0.5">
+
+                            ${a.classes ? a.classes.split(',').map(c => `<span class="bg-slate-300 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 px-1 rounded-sm">${c.trim()}</span>`).join('') : ''}
+                        </div>
+                    </div>
+                    <div class="absolute top-1 right-1.5 flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition">
+                        <button onclick="editArtist('${a.id}')" class="text-slate-400 hover:text-teal-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-2.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                        </button>
+                        <button onclick="removeArtist('${a.id}')" class="text-slate-400 hover:text-red-500 font-bold">&times;</button>
+                    </div>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        // TASK CRUD
+        function editTask(id) {
+            const t = database.tasks.find(item => item.id === id);
+            if (!t) return;
+            editingTaskId = id;
+
+            document.getElementById('taskModalTitle').innerText = "Edit Global Task Entry";
+            document.getElementById('tskName').value = t.name;
+            document.getElementById('tskDue').value = t.due;
+            document.getElementById('tskDesc').value = t.desc;
+            document.getElementById('tskMaterials').value = t.materials;
+            document.getElementById('tskNotes').value = t.notes;
+            toggleModal('taskModal', true);
+        }
+
+        function saveTask(e) {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('tskName').value,
+                due: document.getElementById('tskDue').value,
+                desc: document.getElementById('tskDesc').value,
+                materials: document.getElementById('tskMaterials').value,
+                notes: document.getElementById('tskNotes').value
+            };
+
+
+            if (editingTaskId) {
+                const index = database.tasks.findIndex(t => t.id === editingTaskId);
+                if (index !== -1) {
+                    database.tasks[index] = { ...database.tasks[index], ...payload };
+                    showToast("Global Task Updated", `Synchronized changes.`);
+                }
+            } else {
+                const task = { id: Date.now().toString(), ...payload };
+                database.tasks.push(task);
+                showToast("Global Task Tracked", `Added task successfully.`);
+            }
+
+            persistState();
+            toggleModal('taskModal', false);
+            renderTasks();
+        }
+
+        function removeTask(id) {
+            database.tasks = database.tasks.filter(t => t.id !== id);
+
+            persistState();
+            renderTasks();
+        }
+
+        function renderTasks() {
+            const container = document.getElementById('taskList');
+            container.innerHTML = '';
+            if(database.tasks.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-500 italic py-1">No active global queue blocks.</p>';
+                return;
+            }
+            database.tasks.forEach(t => {
+                const el = document.createElement('div');
+                el.className = "p-2 rounded-sm bg-slate-50 dark:bg-zinc-900 border border-slate-400/30 dark:border-zinc-800 relative group text-xs text-left";
+                el.innerHTML = `
+                    <div class="font-bold text-slate-800 dark:text-zinc-300 text-sm truncate pr-5">${t.name}</div>
+                    ${t.due ? `<div class="text-[11px] text-teal-600 dark:text-teal-400">Due: ${t.due}</div>` : ''}
+                    ${t.materials ? `<div class="text-[11px] text-zinc-500 dark:text-zinc-400">Needed: ${t.materials}</div>` : ''}
+                    <div class="absolute top-1 right-1.5 flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition">
+
+                        <button onclick="editTask('${t.id}')" class="text-slate-400 hover:text-teal-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-2.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                        </button>
+                        <button onclick="removeTask('${t.id}')" class="text-slate-400 hover:text-red-500 font-bold">&times;</button>
+                    </div>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        // BULLETIN CRUD
+        function editBulletin(id) {
+            const b = database.bulletins.find(item => item.id === id);
+            if (!b) return;
+            editingBulletinId = id;
+            const input = document.getElementById('bulletinInput');
+            input.value = b.text;
+            input.placeholder = "Editing... Enter to save, ESC to clear.";
+            input.focus();
+
+        }
+
+        function cancelBulletinEdit() {
+            editingBulletinId = null;
+            const input = document.getElementById('bulletinInput');
+            input.value = '';
+            input.placeholder = "Type note & hit Enter...";
+        }
+
+        function addBulletinNote() {
+            const input = document.getElementById('bulletinInput');
+            const text = input.value.trim();
+            if(!text) return;
+            
+            if (editingBulletinId) {
+                const index = database.bulletins.findIndex(b => b.id === editingBulletinId);
+                if (index !== -1) {
+                    database.bulletins[index].text = text;
+                    showToast("Note Updated", "Bulletin context saved.");
+
+                }
+                editingBulletinId = null;
+                input.placeholder = "Type note & hit Enter...";
+            } else {
+                const item = { id: Date.now().toString(), text: text };
+                database.bulletins.push(item);
+            }
+            
+            persistState();
+            input.value = '';
+            renderBulletins();
+        }
+
+        function removeBulletin(id) {
+            database.bulletins = database.bulletins.filter(b => b.id !== id);
+            persistState();
+            renderBulletins();
+        }
+
+
+        function renderBulletins() {
+            const container = document.getElementById('bulletinBoard');
+            container.innerHTML = '';
+            if(database.bulletins.length === 0) {
+                container.className = "text-xs text-slate-500 italic py-1 col-span-2 text-center";
+                container.innerHTML = 'Board empty.';
+                return;
+            } else {
+                container.className = "grid grid-cols-2 gap-1.5 overflow-y-auto flex-1 pr-1";
+            }
+            database.bulletins.forEach(b => {
+                const el = document.createElement('div');
+                el.className = "p-1.5 rounded-sm bg-yellow-50 dark:bg-zinc-900/60 border border-yellow-200 dark:border-zinc-800 text-slate-800 dark:text-zinc-300 text-xs relative group text-left break-words shadow-sm";
+                el.innerHTML = `
+                    <div class="pr-3">${b.text}</div>
+                    <div class="absolute top-0.5 right-1 flex items-center space-x-0.5 opacity-0 group-hover:opacity-100 transition">
+                        <button onclick="editBulletin('${b.id}')" class="text-slate-400 hover:text-teal-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-2.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                        </button>
+
+                        <button onclick="removeBulletin('${b.id}')" class="text-slate-400 hover:text-red-500 font-bold">&times;</button>
+                    </div>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        function processJobCardImage(input) {
+            const file = input.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) { document.getElementById('jobImageBase64').value = e.target.result; };
+            reader.readAsDataURL(file);
+        }
+
+        // JOB CRUD
+        function editJob(num) {
+            const j = database.jobs.find(item => item.jobNumber === num);
+            if (!j) return;
+
+            editingJobNumber = num;
+            document.getElementById('jobModalTitle').innerText = "Edit Production Job Card";
+            
+            document.getElementById('jobNum').value = j.jobNumber;
+            document.getElementById('jobName').value = j.jobName;
+            document.getElementById('jobClient').value = j.clientName || '';
+            document.getElementById('jobClasses').value = j.classes ? j.classes.join(', ') : '';
+            document.getElementById('jobStart').value = j.startDate || '';
+            document.getElementById('jobDue').value = j.dueDate || '';
+            document.getElementById('jobAssetCount').value = j.assetCount || 1;
+            document.getElementById('jobFileType').value = j.fileType || '';
+            document.getElementById('jobMedium').value = j.medium || 'Both';
+            document.getElementById('jobStatus').value = j.status || 'Prework';
+            document.getElementById('jobMaterials').value = j.materials || '';
+            document.getElementById('jobNotes').value = j.notes || '';
+            document.getElementById('jobImageBase64').value = j.imageBase64 || '';
+            
+            populateJobArtistSelect(j.assignedArtistId, j.classes ? j.classes.join(', ') : '');
+            toggleModal('jobModal', true);
+
+        }
+
+        function saveJob(e) {
+            e.preventDefault();
+            const num = document.getElementById('jobNum').value.trim();
+            const classesInput = document.getElementById('jobClasses').value;
+            const classArray = classesInput ? classesInput.split(',').map(c => c.trim()).filter(Boolean) : [];
+
+            // Compile clean production card configuration from form inputs
+            const jobCard = {
+                jobNumber: num,
+                jobName: document.getElementById('jobName').value.trim(),
+                clientName: document.getElementById('jobClient').value.trim(),
+                classes: classArray,
+                startDate: document.getElementById('jobStart').value,
+                dueDate: document.getElementById('jobDue').value,
+                assetCount: parseInt(document.getElementById('jobAssetCount').value) || 0,
+                fileType: document.getElementById('jobFileType').value.trim(),
+                medium: document.getElementById('jobMedium').value,
+
+                materials: document.getElementById('jobMaterials').value.trim(),
+                notes: document.getElementById('jobNotes').value.trim(),
+                status: document.getElementById('jobStatus').value,
+                assignedArtistId: document.getElementById('jobArtist').value,
+                archived: false,
+                imageBase64: document.getElementById('jobImageBase64').value || ''
+            };
+
+            if (editingJobNumber) {
+                const oldIndex = database.jobs.findIndex(j => j.jobNumber === editingJobNumber);
+                if (oldIndex !== -1) {
+                    jobCard.archived = database.jobs[oldIndex].archived;
+                    if (!jobCard.imageBase64 && database.jobs[oldIndex].imageBase64) {
+                        jobCard.imageBase64 = database.jobs[oldIndex].imageBase64;
+                    }
+                    
+                    if (editingJobNumber !== num) {
+                        const duplicateCheck = database.jobs.findIndex(j => j.jobNumber === num);
+                        if (duplicateCheck !== -1) {
+
+                            showToast("Identifier Code Mismatch", "The target Job Number is already in use by another active project track.", "text-red-400");
+                            return;
+                        }
+                        database.jobs.splice(oldIndex, 1);
+                        database.jobs.push(jobCard);
+                    } else {
+                        database.jobs[oldIndex] = jobCard;
+                    }
+                    showToast("Job Card Updated", `Sequence parameters successfully bound under ID: ${num}`);
+                }
+            } else {
+                const conflictIndex = database.jobs.findIndex(j => j.jobNumber === num);
+                if(conflictIndex !== -1 && !database.jobs[conflictIndex].archived) {
+                    showToast("Job Tracking Conflict", `Job ID code duplicated in system memory arrays.`, "text-red-400");
+                    return;
+                }
+                database.jobs.push(jobCard);
+                showToast("Job Card Synchronized", `Tracked parameters published.`);
+            }
+
+
+            persistState();
+            toggleModal('jobModal', false);
+            refreshSystemBoardViews();
+        }
+
+        function changeJobStatus(jobNum, newStatus) {
+            const index = database.jobs.findIndex(j => j.jobNumber === jobNum);
+            if(index !== -1) {
+                database.jobs[index].status = newStatus;
+                persistState();
+                renderJobs();
+                showToast("Jidoka Pipeline Move", `Job state defined: ${newStatus}`);
+            }
+        }
+
+        function inlineAssignJobArtist(jobNum, artistId) {
+            const index = database.jobs.findIndex(j => j.jobNumber === jobNum);
+            if(index !== -1) {
+                database.jobs[index].assignedArtistId = artistId;
+
+                persistState();
+                renderJobs();
+                showToast("Studio Reassignment", "Workflow execution pathways synchronized.");
+            }
+        }
+
+        function sendToGraveyard(jobNum) {
+            const index = database.jobs.findIndex(j => j.jobNumber === jobNum);
+            if(index !== -1) {
+                database.jobs[index].archived = true;
+                persistState();
+                refreshSystemBoardViews();
+                showToast("Archived to Graveyard", "Card removed from pipelines.");
+            }
+        }
+
+        function recoverFromGraveyard(jobNum) {
+            const index = database.jobs.findIndex(j => j.jobNumber === jobNum);
+            if(index !== -1) {
+
+                database.jobs[index].archived = false;
+                persistState();
+                refreshSystemBoardViews();
+                showToast("Job Recovered", "Card restored to pipeline view ports.");
+            }
+        }
+
+        function permanentlyDeleteJob(jobNum) {
+            database.jobs = database.jobs.filter(j => j.jobNumber !== jobNum);
+            persistState();
+            refreshSystemBoardViews();
+            showToast("Destroyed Permanently", "Data record purged from allocated buffer layers.");
+        }
+
+        function getStatusColorClass(status) {
+            switch(status) {
+                case 'Prework': return 'bg-amber-500';
+                case 'Starting': return 'bg-amber-500';
+                case 'In-Progress': return 'bg-teal-600';
+
+                case 'Finalizing': return 'bg-emerald-600';
+                case 'Complete': return 'bg-emerald-600';
+                case 'Shipped': return 'bg-emerald-600';
+                case 'Aborted': return 'bg-purple-600';
+                default: return 'bg-slate-400';
+            }
+        }
+
+        function renderJobs() {
+            const container = document.getElementById('jobBoard');
+            container.innerHTML = '';
+
+            const selectedClass = document.getElementById('filterClass').value;
+            const selectedStatus = document.getElementById('filterStatus').value;
+            const currentSort = document.getElementById('sortBy').value;
+            const today = new Date('2026-09-28');
+
+            let activeJobs = database.jobs.filter(j => !j.archived);
+
+
+            if(selectedClass !== 'all') activeJobs = activeJobs.filter(j => j.classes && j.classes.includes(selectedClass));
+            if(selectedStatus !== 'all') activeJobs = activeJobs.filter(j => j.status === selectedStatus);
+
+            activeJobs.sort((a, b) => {
+                if(currentSort === 'jobNumber') return a.jobNumber.localeCompare(b.jobNumber, undefined, {numeric: true});
+                if(currentSort === 'dueDate') return new Date(a.dueDate || '9999-12-31') - new Date(b.dueDate || '9999-12-31');
+                if(currentSort === 'jobName') return a.jobName.localeCompare(b.jobName);
+                return 0;
+            });
+
+            if(activeJobs.length === 0) {
+                container.className = "flex flex-col items-center justify-center p-10 text-slate-400 flex-1 w-full text-center col-span-full";
+                container.innerHTML = '<p class="text-xs font-medium">No matching active matrix components loaded in workspace.</p>';
+                return;
+            } else {
+                container.className = "flex-1 overflow-y-auto p-4 grid grid-cols-1 xl:grid-cols-2 gap-4 align-start";
+            }
+
+            activeJobs.forEach(j => {
+
+                const badgeColor = getStatusColorClass(j.status);
+                let cardColorClasses = "bg-slate-50 dark:bg-zinc-900 border-slate-300 dark:border-zinc-800 shadow-sm";
+                let borderLabelBadge = "";
+                const isPastDue = j.dueDate && (new Date(j.dueDate) < today) && j.status !== 'Complete' && j.status !== 'Shipped';
+
+                // 1. Core Structural Status Label Logic
+                if (j.status === 'In-Progress') {
+                    borderLabelBadge = `<span class="bg-teal-600 text-white text-[10px] font-bold px-1 py-0.5 rounded-sm">ACTIVE RUN</span>`;
+                } else if (j.status === 'Prework' || j.status === 'Starting') {
+                    borderLabelBadge = `<span class="bg-amber-500 text-white text-[10px] font-bold px-1 py-0.5 rounded-sm">PREPARATION</span>`;
+                } else if (j.status === 'Finalizing') {
+                    borderLabelBadge = `<span class="bg-emerald-600 text-white text-[10px] font-bold px-1 py-0.5 rounded-sm">FINALIZING</span>`;
+                } else if (j.status === 'Complete') {
+                    borderLabelBadge = `<span class="bg-yellow-500 text-neutral-900 text-[10px] font-bold px-1 py-0.5 rounded-sm shadow-xs">COMPLETE</span>`;
+                } else if (j.status === 'Shipped') {
+                    borderLabelBadge = `<span class="bg-zinc-600 text-white text-[10px] font-bold px-1 py-0.5 rounded-sm">SHIPPED</span>`;
+                } else if (j.status === 'Aborted') {
+                    borderLabelBadge = `<span class="bg-purple-600 text-white text-[10px] font-bold px-1 py-0.5 rounded-sm">ABORTED</span>`;
+                }
+
+
+                if (isPastDue) {
+                    borderLabelBadge = `<span class="bg-red-500 text-white text-[10px] font-bold px-1 py-0.5 rounded-sm">PAST DUE</span>`;
+                }
+
+                // 2. Structural Border & Opacity Modification Layer based purely on Assignment status
+                if (!j.assignedArtistId) {
+                    cardColorClasses = "bg-slate-100/40 dark:bg-zinc-900/30 border-dashed border-slate-300 dark:border-zinc-800 opacity-60";
+                } else {
+                    if (j.status === 'In-Progress') {
+                        cardColorClasses = "bg-teal-50/20 dark:bg-teal-950/10 border-teal-600 dark:border-teal-700 opacity-100";
+                    } else if (j.status === 'Prework' || j.status === 'Starting') {
+                        cardColorClasses = "bg-amber-50/20 dark:bg-amber-950/10 border-amber-500 dark:border-amber-700 opacity-100";
+                    } else if (j.status === 'Finalizing' || j.status === 'Complete' || j.status === 'Shipped') {
+                        cardColorClasses = "bg-emerald-50/20 dark:bg-emerald-950/10 border-emerald-500 dark:border-emerald-700 opacity-100";
+                    } else if (j.status === 'Aborted') {
+                        cardColorClasses = "bg-purple-50/20 dark:bg-purple-950/10 border-purple-500 dark:border-purple-700 opacity-100";
+                    }
+
+                    if (isPastDue) {
+
+                        cardColorClasses = "bg-red-50/20 dark:bg-red-950/10 border-red-500 dark:border-red-800 opacity-100";
+                    }
+                }
+
+                const card = document.createElement('div');
+                card.className = `${cardColorClasses} rounded-md border p-4 flex flex-col relative group hover:shadow transition duration-100 text-left text-sm text-slate-600 dark:text-zinc-300`;
+                
+                let imgMarkup = '';
+                if(j.imageBase64) {
+                    imgMarkup = `<img src="${j.imageBase64}" class="w-[120px] h-[120px] rounded-sm object-cover bg-slate-100 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 flex-shrink-0" alt="Preview Asset">`;
+                } else {
+                    imgMarkup = `<div class="w-[120px] h-[120px] rounded-sm bg-slate-100 dark:bg-zinc-950/50 border border-dashed border-slate-300 dark:border-zinc-800 flex flex-col items-center justify-center p-2 text-center text-xs text-slate-400 flex-shrink-0">
+                        <span>No Preview</span>
+                    </div>`;
+                }
+
+                const inlineArtistOptions = buildArtistDropdownOptionsHtml(j.classes, j.assignedArtistId);
+
+                card.innerHTML = `
+
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="flex items-center gap-1.5">
+                            ${borderLabelBadge}
+                            ${!j.assignedArtistId ? `<span class="bg-zinc-200 dark:bg-zinc-800 text-zinc-500 text-[9px] px-1 font-mono uppercase tracking-tight rounded-sm">Waiting Roster</span>` : ''}
+                        </div>
+                        <div class="flex items-center space-x-1 ml-auto opacity-0 group-hover:opacity-100 transition">
+                            <button onclick="editJob('${j.jobNumber}')" class="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-400 hover:text-teal-500 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-2.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                            </button>
+                            <button onclick="sendToGraveyard('${j.jobNumber}')" class="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-400 hover:text-red-500 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 items-start w-full mb-2.5">
+                        ${imgMarkup}
+                        
+                        <div class="flex-1 min-w-0 flex flex-col h-[120px] justify-between">
+
+                            <div>
+                                <span class="font-mono font-bold text-teal-600 dark:text-teal-400 tracking-wider select-all text-sm">#${j.jobNumber}</span>
+                                <h3 class="text-sm font-bold text-slate-900 dark:text-zinc-200 mt-0.5 truncate" title="${j.jobName}">${j.jobName}</h3>
+                                <p class="text-slate-500 dark:text-zinc-400 text-xs truncate">Client: ${j.clientName || 'N/A'}</p>
+                            </div>
+
+                            <div class="mt-1 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full ${badgeColor}"></span>
+                                <select onchange="changeJobStatus('${j.jobNumber}', this.value)" class="bg-transparent border-none p-0 text-xs font-bold text-slate-800 dark:text-zinc-300 focus:ring-0 cursor-pointer">
+                                    <option value="Prework" ${j.status === 'Prework' ? 'selected' : ''}>Prework</option>
+                                    <option value="Starting" ${j.status === 'Starting' ? 'selected' : ''}>Starting</option>
+                                    <option value="In-Progress" ${j.status === 'In-Progress' ? 'selected' : ''}>In-Progress</option>
+                                    <option value="Finalizing" ${j.status === 'Finalizing' ? 'selected' : ''}>Finalizing</option>
+                                    <option value="Complete" ${j.status === 'Complete' ? 'selected' : ''}>Complete</option>
+                                    <option value="Shipped" ${j.status === 'Shipped' ? 'selected' : ''}>Shipped</option>
+                                    <option value="Aborted" ${j.status === 'Aborted' ? 'selected' : ''}>Aborted</option>
+                                </select>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="mb-2 p-1.5 rounded-sm bg-slate-100 dark:bg-zinc-950 border border-slate-300/40 dark:border-zinc-800">
+                        <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-tight">Assigned Studio Operator</label>
+                        <select onchange="inlineAssignJobArtist('${j.jobNumber}', this.value)" class="w-full bg-transparent text-xs text-slate-800 dark:text-zinc-300 border-none p-0 focus:ring-0 font-medium cursor-pointer">
+                            ${inlineArtistOptions}
+                        </select>
+                    </div>
+
+                    <div class="flex flex-wrap gap-0.5 mb-2">
+                        ${j.classes && j.classes.length > 0 ? j.classes.map(c => `<span class="bg-slate-200 dark:bg-zinc-800 px-1 py-0.5 rounded-sm text-[10px] font-medium text-slate-600 dark:text-zinc-400">#${c}</span>`).join('') : ''}
+                    </div>
+
+                    <!-- RESTRUCTURED SPECIFICATIONS MATRIX -->
+                    <div class="grid grid-cols-2 gap-2 bg-slate-100/50 dark:bg-zinc-950/40 p-2 rounded-sm border border-slate-300/30 dark:border-zinc-800 mb-2">
+                        <div>
+                            <span class="block text-[10px] text-slate-400 uppercase tracking-tight">Timeline Range</span>
+                            <span class="font-medium text-xs text-slate-700 dark:text-zinc-300">${j.startDate || 'Unset'} &rarr; <span class="${isPastDue ? 'text-red-500 font-bold' : 'text-slate-700 dark:text-zinc-300'}">${j.dueDate || 'Unset'}</span></span>
+                        </div>
+
+                        <div>
+                            <span class="block text-[10px] text-slate-400 uppercase tracking-tight">Asset Config</span>
+                            <span class="font-medium text-xs font-mono text-slate-700 dark:text-zinc-300">${j.assetCount} matching [${j.medium}]</span>
+                        </div>
+                        <div class="col-span-2 border-t border-slate-300/30 dark:border-zinc-800 pt-1">
+                            <span class="block text-[10px] text-slate-400 uppercase tracking-tight">Output Format</span>
+                            <span class="font-mono text-slate-700 dark:text-zinc-400 font-medium text-xs block truncate" title="${j.fileType}">${j.fileType || 'Standard Matrix'}</span>
+                        </div>
+                        ${j.materials ? `
+                        <div class="col-span-2 border-t border-slate-300/30 dark:border-zinc-800 pt-1">
+                            <span class="block text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-tight">Material Resource Needs</span>
+                            <span class="text-xs text-zinc-500 dark:text-zinc-400 block break-words" title="${j.materials}">${j.materials}</span>
+                        </div>` : ''}
+                    </div>
+
+                    <!-- DEDICATED HIGH-VISIBILITY LONG NOTES COMPONENT REGION -->
+                    <div class="p-2 bg-slate-100 dark:bg-zinc-950 border border-slate-300/60 dark:border-zinc-800 rounded-sm flex-1 flex flex-col min-h-[56px]">
+                        <span class="block text-[10px] text-teal-600 dark:text-teal-500 font-bold uppercase tracking-wider mb-0.5">Comprehensive Production Notes</span>
+                        <div class="text-xs text-slate-700 dark:text-zinc-300 overflow-y-auto max-h-24 whitespace-pre-wrap break-words leading-relaxed select-text">${j.notes || '<span class="text-slate-400 italic">No notes provided for this production track.</span>'}</div>
+
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderGraveyard() {
+            const container = document.getElementById('graveyardList');
+            const deadJobs = database.jobs.filter(j => j.archived);
+            const counterLabel = document.getElementById('graveyardCount');
+
+            if(deadJobs.length > 0) {
+                counterLabel.textContent = deadJobs.length;
+                counterLabel.classList.remove('hidden');
+            } else {
+                counterLabel.classList.add('hidden');
+            }
+
+            container.innerHTML = '';
+
+            if(deadJobs.length === 0) {
+                container.innerHTML = '<p class="text-slate-400 text-center py-4 italic text-xs">The graveyard is empty.</p>';
+                return;
+            }
+
+            deadJobs.forEach(j => {
+                const item = document.createElement('div');
+                item.className = "flex items-center justify-between p-2 rounded-sm bg-slate-200 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 font-sans";
+                item.innerHTML = `
+                    <div class="min-w-0 flex-1 pr-2">
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-mono font-bold text-teal-600">#${j.jobNumber}</span>
+                            <span class="font-medium truncate text-slate-900 dark:text-zinc-300">${j.jobName}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-1 flex-shrink-0">
+                        <button onclick="recoverFromGraveyard('${j.jobNumber}')" class="px-2 py-0.5 text-[10px] bg-slate-300 dark:bg-zinc-800 hover:bg-teal-600 hover:text-white rounded-sm transition">
+                            Restore
+                        </button>
+
+                        <button onclick="permanentlyDeleteJob('${j.jobNumber}')" class="p-0.5 text-slate-400 hover:text-red-500 font-bold text-sm">&times;</button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function refreshSystemBoardViews() {
+            rebuildClassFilters();
+            renderJobs();
+            renderArtists();
+            renderTasks();
+            renderBulletins();
+            renderGraveyard();
+        }
+
+        function exportToCsv() {
+            if(database.jobs.length === 0) return;
+            const headers = ["JobNumber", "JobName", "ClientName", "ClassesKeywords", "StartDate", "DueDate", "AssetCount", "FinishedFileType", "MediumOutput", "MaterialNeeds", "ProductionNotes", "PipelineStatus", "IsArchived", "AssignedArtistId"];
+
+            let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\r\n";
+
+            database.jobs.forEach(j => {
+                const safeClasses = j.classes ? j.classes.join(";") : "";
+                const rowData = [
+                    sanitizeCsvField(j.jobNumber), sanitizeCsvField(j.jobName), sanitizeCsvField(j.clientName),
+                    sanitizeCsvField(safeClasses), sanitizeCsvField(j.startDate), sanitizeCsvField(j.dueDate),
+                    j.assetCount, sanitizeCsvField(j.fileType), sanitizeCsvField(j.medium), sanitizeCsvField(j.materials),
+                    sanitizeCsvField(j.notes), sanitizeCsvField(j.status), j.archived ? 1 : 0, sanitizeCsvField(j.assignedArtistId || "")
+                ];
+                csvContent += rowData.join(",") + "\r\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const downloadAnchor = document.createElement("a");
+            downloadAnchor.setAttribute("href", encodedUri);
+            downloadAnchor.setAttribute("download", `JIDOKA_TRACKER_EXPORT_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+
+            document.body.removeChild(downloadAnchor);
+        }
+
+        function sanitizeCsvField(val) {
+            if(val === undefined || val === null) return "";
+            let flat = String(val).replace(/"/g, '""');
+            if(flat.includes(",") || flat.includes("\n") || flat.includes('"') || flat.includes(";")) {
+                flat = `"${flat}"`;
+            }
+            return flat;
+        }
+
+        function parseCsvLine(text) {
+            let p = '', c = '', r = [];
+            let q = false;
+            for (let i = 0; i < text.length; i++) {
+                c = text[i];
+                if (c === '"') {
+                    if (q && text[i+1] === '"') { p += '"'; i++; }
+
+                    else { q = !q; }
+                } else if (c === ',' && !q) {
+                    r.push(p); p = '';
+                } else if ((c === '\r' || c === '\n') && !q) {
+                    r.push(p); return r;
+                } else {
+                    p += c;
+                }
+            }
+            r.push(p); return r;
+        }
+
+        function handleCsvImport(event) {
+            const file = event.target.files[0];
+            if(!file) return;
+
+            const overlay = document.createElement('div');
+            overlay.className = "fixed inset-0 bg-neutral-950/80 backdrop-blur-xs z-50 flex items-center justify-center p-4";
+            overlay.innerHTML = `
+
+                <div class="bg-slate-100 dark:bg-zinc-900 p-5 rounded-md max-w-sm w-full space-y-3 text-xs text-left shadow-2xl border border-slate-300 dark:border-zinc-800">
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-zinc-300">Import Configuration Sync</h3>
+                    <p class="text-slate-500 dark:text-zinc-400">Choose how the system imports data lines:</p>
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <button id='btnAppend' class="p-2 bg-slate-200 dark:bg-zinc-800 hover:bg-teal-600 hover:text-white rounded-sm font-semibold transition text-center dark:text-zinc-300">Append Rows</button>
+                        <button id='btnReplace' class="p-2 bg-red-500/10 text-red-500 hover:bg-red-600 hover:text-white rounded-sm font-semibold transition text-center">Replace Core</button>
+                    </div>
+                    <div class="flex justify-end pt-1">
+                        <button id='btnCancelImport' class="text-[11px] text-slate-400 hover:text-slate-200">Abort Import</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            document.getElementById('btnCancelImport').onclick = () => { document.body.removeChild(overlay); document.getElementById('importCsvInput').value = ''; };
+            document.getElementById('btnAppend').onclick = () => { executeImportSequence(file, 'append'); document.body.removeChild(overlay); };
+            document.getElementById('btnReplace').onclick = () => { executeImportSequence(file, 'replace'); document.body.removeChild(overlay); };
+        }
+
+
+        function executeImportSequence(file, mode) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+                if(lines.length <= 1) return;
+
+                let parsedJobs = [];
+                for(let i = 1; i < lines.length; i++) {
+                    const rowFields = parseCsvLine(lines[i]);
+                    if(rowFields.length < 2) continue;
+
+                    const classRawStr = rowFields[3] || "";
+                    const classesArr = classRawStr ? classRawStr.split(";").map(c => c.trim()).filter(Boolean) : [];
+
+                    parsedJobs.push({
+                        jobNumber: rowFields[0] ? rowFields[0].trim() : `GEN-${Date.now()}-${i}`,
+                        jobName: rowFields[1] ? rowFields[1].trim() : "Untitled Import",
+                        clientName: rowFields[2] || "",
+
+                        classes: classesArr,
+                        startDate: rowFields[4] || "",
+                        dueDate: rowFields[5] || "",
+                        assetCount: parseInt(rowFields[6]) || 0,
+                        fileType: rowFields[7] || "",
+                        medium: rowFields[8] || "Both",
+                        materials: rowFields[9] || "",
+                        notes: rowFields[10] || "",
+                        status: rowFields[11] || "Prework",
+                        archived: rowFields[12] === "1" ? true : false,
+                        assignedArtistId: rowFields[13] ? rowFields[13].trim() : "",
+                        imageBase64: ""
+                    });
+                }
+
+                if(mode === 'replace') { database.jobs = parsedJobs; }
+                else {
+                    parsedJobs.forEach(newJob => {
+                        const existingIdx = database.jobs.findIndex(j => j.jobNumber === newJob.jobNumber);
+
+                        if(existingIdx !== -1) database.jobs[existingIdx] = newJob;
+                        else database.jobs.push(newJob);
+                    });
+                }
+
+                persistState();
+                refreshSystemBoardViews();
+                document.getElementById('importCsvInput').value = '';
+                showToast("Synchronization Success", `Processed ${parsedJobs.length} records.`);
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
+
+
