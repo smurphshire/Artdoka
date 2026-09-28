@@ -13,7 +13,7 @@
             theme: {
                 extend: {
                     colors: {
-                        jidoka: {
+                        Artdoka: {
                             prework: '#64748b',
                             starting: '#3b82f6',
                             inprogress: '#0d9488',
@@ -61,7 +61,7 @@
 
     <header class="bg-slate-300 dark:bg-zinc-900 border-b border-slate-400/40 dark:border-zinc-800 h-14 min-h-14 flex items-center justify-between px-6 z-10">
         <div class="flex items-center space-x-3">
-            <!-- Jidoka Icon Symbol -->
+            <!-- Artdoka Icon Symbol -->
             <div class="bg-teal-600 text-white px-2 py-0.5 rounded-sm font-bold tracking-wider text-xs">Artdoka</div>
             <h1 class="text-lg font-bold tracking-tight text-slate-800 dark:text-zinc-300">
                 Art Director Dashboard
@@ -81,7 +81,7 @@
 
                     <option value="Prework">Prework</option>
                     <option value="Starting">Starting</option>
-                    <option value="In-Progress">In-Progress</option>
+                    <option value="In-Progress">In-Progress (Active Pool)</option>
                     <option value="Finalizing">Finalizing</option>
                     <option value="Complete">Complete</option>
                     <option value="Shipped">Shipped</option>
@@ -100,14 +100,14 @@
         <!-- Right System Controls -->
 
         <div class="flex items-center space-x-2">
-            <!-- Import Button -->
-            <button onclick="document.getElementById('importCsvInput').click()" title="Import CSV" class="p-1.5 rounded-sm hover:bg-slate-400/20 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-400 transition">
+            <!-- Import Unified Backup System Button -->
+            <button onclick="document.getElementById('importCsvInput').click()" title="Import Workspace Backup (.csv)" class="p-1.5 rounded-sm hover:bg-slate-400/20 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-400 transition">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
             </button>
             <input type="file" id="importCsvInput" accept=".csv" class="hidden" onchange="handleCsvImport(event)">
 
-            <!-- Export Button -->
-            <button onclick="exportToCsv()" title="Export CSV" class="p-1.5 rounded-sm hover:bg-slate-400/20 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-400 transition">
+            <!-- Export Unified Backup System Button -->
+            <button onclick="exportToCsv()" title="Export Complete Board Database (.csv)" class="p-1.5 rounded-sm hover:bg-slate-400/20 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-400 transition">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
             </button>
 
@@ -190,10 +190,10 @@
 
         <!-- MAIN VIEW AREA (RIGHT) -->
         <main class="flex-1 flex flex-col overflow-hidden bg-slate-100 dark:bg-zinc-950">
-            <!-- Board Action Header Grid Title -->
+            <!-- Board Action Header Grid Title with Dynamic Fractions Context -->
             <div class="px-6 py-3 flex items-center justify-between bg-slate-50 dark:bg-zinc-900 border-b border-slate-300 dark:border-zinc-800">
                 <div>
-                    <h2 class="text-sm font-bold text-slate-800 dark:text-zinc-300">Active Job Pipeline</h2>
+                    <h2 id="pipelineHeaderTitle" class="text-sm font-bold text-slate-800 dark:text-zinc-300">Active Job Pipeline: 0/0</h2>
                 </div>
                 <button onclick="toggleModal('jobModal', true)" class="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-3 py-1 rounded-sm text-xs transition flex items-center gap-1.5 shadow-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
@@ -202,8 +202,8 @@
                 </button>
             </div>
 
-            <!-- JOB CARDS CONTAINER GRID -->
-            <div id="jobBoard" class="flex-1 overflow-y-auto p-4 grid grid-cols-1 xl:grid-cols-2 gap-4 align-start">
+            <!-- JOB CARDS CONTAINER GRID - Adjusted scaling metrics minmax parameters -->
+            <div id="jobBoard" class="flex-1 overflow-y-auto p-4 grid grid-cols-[repeat(auto-fill,minmax(425px,1fr))] gap-5 align-start justify-center">
                 <!-- Rendered dynamically -->
             </div>
         </main>
@@ -473,7 +473,7 @@
         let editingJobNumber = null;
 
         window.addEventListener('DOMContentLoaded', () => {
-            const preservedData = localStorage.getItem('art_director_jidoka_board');
+            const preservedData = localStorage.getItem('art_director_Artdoka_board');
             if(preservedData) {
                 try {
                     database = JSON.parse(preservedData);
@@ -489,7 +489,7 @@
         });
 
         function persistState() {
-            localStorage.setItem('art_director_jidoka_board', JSON.stringify(database));
+            localStorage.setItem('art_director_Artdoka_board', JSON.stringify(database));
         }
 
         function loadSeedMockArchitectureData() {
@@ -950,7 +950,6 @@
             const classesInput = document.getElementById('jobClasses').value;
             const classArray = classesInput ? classesInput.split(',').map(c => c.trim()).filter(Boolean) : [];
 
-            // Compile clean production card configuration from form inputs
             const jobCard = {
                 jobNumber: num,
                 jobName: document.getElementById('jobName').value.trim(),
@@ -961,8 +960,8 @@
                 assetCount: parseInt(document.getElementById('jobAssetCount').value) || 0,
                 fileType: document.getElementById('jobFileType').value.trim(),
                 medium: document.getElementById('jobMedium').value,
-
                 materials: document.getElementById('jobMaterials').value.trim(),
+
                 notes: document.getElementById('jobNotes').value.trim(),
                 status: document.getElementById('jobStatus').value,
                 assignedArtistId: document.getElementById('jobArtist').value,
@@ -981,8 +980,8 @@
                     if (editingJobNumber !== num) {
                         const duplicateCheck = database.jobs.findIndex(j => j.jobNumber === num);
                         if (duplicateCheck !== -1) {
-
                             showToast("Identifier Code Mismatch", "The target Job Number is already in use by another active project track.", "text-red-400");
+
                             return;
                         }
                         database.jobs.splice(oldIndex, 1);
@@ -1014,7 +1013,7 @@
                 database.jobs[index].status = newStatus;
                 persistState();
                 renderJobs();
-                showToast("Jidoka Pipeline Move", `Job state defined: ${newStatus}`);
+                showToast("Artdoka Pipeline Move", `Job state defined: ${newStatus}`);
             }
         }
 
@@ -1080,55 +1079,76 @@
             const currentSort = document.getElementById('sortBy').value;
             const today = new Date('2026-09-28');
 
-            let activeJobs = database.jobs.filter(j => !j.archived);
+            let allPipelineJobs = database.jobs.filter(j => !j.archived);
 
 
-            if(selectedClass !== 'all') activeJobs = activeJobs.filter(j => j.classes && j.classes.includes(selectedClass));
-            if(selectedStatus !== 'all') activeJobs = activeJobs.filter(j => j.status === selectedStatus);
+            // 1. Calculate Dynamically Rendered Header Fractions Fraction metrics (Assigned AND Active Pool status out of overall unarchived)
+            const overallPipelineCount = allPipelineJobs.length;
+            const activePoolCount = allPipelineJobs.filter(j => 
+                j.assignedArtistId && ['In-Progress', 'Starting', 'Finalizing'].includes(j.status)
+            ).length;
+            
+            document.getElementById('pipelineHeaderTitle').textContent = `Active Job Pipeline: ${activePoolCount}/${overallPipelineCount}`;
 
-            activeJobs.sort((a, b) => {
+            // 2. Perform Filtering sequence with the structural 'In-Progress' catch-all definition
+            let filteredJobs = [...allPipelineJobs];
+
+            if(selectedClass !== 'all') {
+                filteredJobs = filteredJobs.filter(j => j.classes && j.classes.includes(selectedClass));
+            }
+            
+            if(selectedStatus !== 'all') {
+                if (selectedStatus === 'In-Progress') {
+                    // Catch-all triggers showing Starting, In-Progress, and Finalizing together
+                    filteredJobs = filteredJobs.filter(j => ['In-Progress', 'Starting', 'Finalizing'].includes(j.status));
+
+                } else {
+                    // Others filter strictly and independently
+                    filteredJobs = filteredJobs.filter(j => j.status === selectedStatus);
+                }
+            }
+
+            filteredJobs.sort((a, b) => {
                 if(currentSort === 'jobNumber') return a.jobNumber.localeCompare(b.jobNumber, undefined, {numeric: true});
                 if(currentSort === 'dueDate') return new Date(a.dueDate || '9999-12-31') - new Date(b.dueDate || '9999-12-31');
                 if(currentSort === 'jobName') return a.jobName.localeCompare(b.jobName);
                 return 0;
             });
 
-            if(activeJobs.length === 0) {
+            if(filteredJobs.length === 0) {
                 container.className = "flex flex-col items-center justify-center p-10 text-slate-400 flex-1 w-full text-center col-span-full";
                 container.innerHTML = '<p class="text-xs font-medium">No matching active matrix components loaded in workspace.</p>';
                 return;
             } else {
-                container.className = "flex-1 overflow-y-auto p-4 grid grid-cols-1 xl:grid-cols-2 gap-4 align-start";
+                container.className = "flex-1 overflow-y-auto p-4 grid grid-cols-[repeat(auto-fill,minmax(425px,1fr))] gap-5 align-start justify-center";
+
             }
 
-            activeJobs.forEach(j => {
-
+            filteredJobs.forEach(j => {
                 const badgeColor = getStatusColorClass(j.status);
                 let cardColorClasses = "bg-slate-50 dark:bg-zinc-900 border-slate-300 dark:border-zinc-800 shadow-sm";
                 let borderLabelBadge = "";
                 const isPastDue = j.dueDate && (new Date(j.dueDate) < today) && j.status !== 'Complete' && j.status !== 'Shipped';
 
-                // 1. Core Structural Status Label Logic
                 if (j.status === 'In-Progress') {
-                    borderLabelBadge = `<span class="bg-teal-600 text-white text-[10px] font-bold px-1 py-0.5 rounded-sm">ACTIVE RUN</span>`;
+                    borderLabelBadge = `<span class="bg-teal-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-sm">ACTIVE RUN</span>`;
                 } else if (j.status === 'Prework' || j.status === 'Starting') {
-                    borderLabelBadge = `<span class="bg-amber-500 text-white text-[10px] font-bold px-1 py-0.5 rounded-sm">PREPARATION</span>`;
+                    borderLabelBadge = `<span class="bg-amber-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-sm">PREPARATION</span>`;
                 } else if (j.status === 'Finalizing') {
-                    borderLabelBadge = `<span class="bg-emerald-600 text-white text-[10px] font-bold px-1 py-0.5 rounded-sm">FINALIZING</span>`;
+                    borderLabelBadge = `<span class="bg-emerald-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-sm">FINALIZING</span>`;
                 } else if (j.status === 'Complete') {
-                    borderLabelBadge = `<span class="bg-yellow-500 text-neutral-900 text-[10px] font-bold px-1 py-0.5 rounded-sm shadow-xs">COMPLETE</span>`;
+                    borderLabelBadge = `<span class="bg-yellow-500 text-neutral-900 text-xs font-bold px-1.5 py-0.5 rounded-sm shadow-xs">COMPLETE</span>`;
                 } else if (j.status === 'Shipped') {
-                    borderLabelBadge = `<span class="bg-zinc-600 text-white text-[10px] font-bold px-1 py-0.5 rounded-sm">SHIPPED</span>`;
+                    borderLabelBadge = `<span class="bg-zinc-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-sm">SHIPPED</span>`;
                 } else if (j.status === 'Aborted') {
-                    borderLabelBadge = `<span class="bg-purple-600 text-white text-[10px] font-bold px-1 py-0.5 rounded-sm">ABORTED</span>`;
-                }
 
+                    borderLabelBadge = `<span class="bg-purple-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-sm">ABORTED</span>`;
+                }
 
                 if (isPastDue) {
-                    borderLabelBadge = `<span class="bg-red-500 text-white text-[10px] font-bold px-1 py-0.5 rounded-sm">PAST DUE</span>`;
+                    borderLabelBadge = `<span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-sm">PAST DUE</span>`;
                 }
 
-                // 2. Structural Border & Opacity Modification Layer based purely on Assignment status
                 if (!j.assignedArtistId) {
                     cardColorClasses = "bg-slate-100/40 dark:bg-zinc-900/30 border-dashed border-slate-300 dark:border-zinc-800 opacity-60";
                 } else {
@@ -1142,108 +1162,111 @@
                         cardColorClasses = "bg-purple-50/20 dark:bg-purple-950/10 border-purple-500 dark:border-purple-700 opacity-100";
                     }
 
-                    if (isPastDue) {
 
+                    if (isPastDue) {
                         cardColorClasses = "bg-red-50/20 dark:bg-red-950/10 border-red-500 dark:border-red-800 opacity-100";
                     }
                 }
 
                 const card = document.createElement('div');
-                card.className = `${cardColorClasses} rounded-md border p-4 flex flex-col relative group hover:shadow transition duration-100 text-left text-sm text-slate-600 dark:text-zinc-300`;
+                // Scaled Up card proportions to ~425px width footprint and 500px total locked container heights
+                card.className = `${cardColorClasses} rounded-md border p-4 flex flex-col justify-between relative group hover:shadow transition duration-100 text-left text-sm w-full max-w-[430px] h-[505px] overflow-hidden select-none`;
                 
                 let imgMarkup = '';
                 if(j.imageBase64) {
-                    imgMarkup = `<img src="${j.imageBase64}" class="w-[120px] h-[120px] rounded-sm object-cover bg-slate-100 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 flex-shrink-0" alt="Preview Asset">`;
+                    imgMarkup = `<img src="${j.imageBase64}" class="w-[115px] h-[115px] rounded-sm object-cover bg-slate-100 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-800 flex-shrink-0" alt="Preview Asset">`;
                 } else {
-                    imgMarkup = `<div class="w-[120px] h-[120px] rounded-sm bg-slate-100 dark:bg-zinc-950/50 border border-dashed border-slate-300 dark:border-zinc-800 flex flex-col items-center justify-center p-2 text-center text-xs text-slate-400 flex-shrink-0">
+                    imgMarkup = `<div class="w-[115px] h-[115px] rounded-sm bg-slate-100 dark:bg-zinc-950/50 border border-dashed border-slate-300 dark:border-zinc-800 flex flex-col items-center justify-center p-2 text-center text-xs text-slate-400 flex-shrink-0">
                         <span>No Preview</span>
                     </div>`;
                 }
 
                 const inlineArtistOptions = buildArtistDropdownOptionsHtml(j.classes, j.assignedArtistId);
 
+
                 card.innerHTML = `
-
-                    <div class="flex justify-between items-center mb-2">
-                        <div class="flex items-center gap-1.5">
-                            ${borderLabelBadge}
-                            ${!j.assignedArtistId ? `<span class="bg-zinc-200 dark:bg-zinc-800 text-zinc-500 text-[9px] px-1 font-mono uppercase tracking-tight rounded-sm">Waiting Roster</span>` : ''}
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="flex items-center gap-1.5">
+                                ${borderLabelBadge}
+                                ${!j.assignedArtistId ? `<span class="bg-zinc-200 dark:bg-zinc-800 text-zinc-500 text-[10px] px-1.5 font-mono uppercase tracking-tight rounded-sm">Waiting Roster</span>` : ''}
+                            </div>
+                            <div class="flex items-center space-x-1 ml-auto opacity-0 group-hover:opacity-100 transition">
+                                <button onclick="editJob('${j.jobNumber}')" class="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-400 hover:text-teal-500 transition">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-2.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                </button>
+                                <button onclick="sendToGraveyard('${j.jobNumber}')" class="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-400 hover:text-red-500 transition">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
+                            </div>
                         </div>
-                        <div class="flex items-center space-x-1 ml-auto opacity-0 group-hover:opacity-100 transition">
-                            <button onclick="editJob('${j.jobNumber}')" class="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-400 hover:text-teal-500 transition">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-2.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                            </button>
-                            <button onclick="sendToGraveyard('${j.jobNumber}')" class="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-400 hover:text-red-500 transition">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                            </button>
+
+                        <div class="flex gap-3 items-start w-full mb-2">
+                            ${imgMarkup}
+
+                            
+                            <div class="flex-1 min-w-0 flex flex-col h-[115px] justify-between text-xs">
+                                <div>
+                                    <span class="font-mono font-bold text-teal-600 dark:text-teal-400 tracking-wider select-all text-sm">#${j.jobNumber}</span>
+                                    <h3 class="text-sm font-bold text-slate-900 dark:text-zinc-200 mt-0.5 truncate" title="${j.jobName}">${j.jobName}</h3>
+                                    <p class="text-slate-500 dark:text-zinc-400 text-xs truncate">Client: ${j.clientName || 'N/A'}</p>
+                                </div>
+
+                                <div class="mt-1 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full ${badgeColor}"></span>
+                                    <select onchange="changeJobStatus('${j.jobNumber}', this.value)" class="bg-transparent border-none p-0 text-xs font-bold text-slate-800 dark:text-zinc-300 focus:ring-0 cursor-pointer">
+                                        <option value="Prework" ${j.status === 'Prework' ? 'selected' : ''}>Prework</option>
+                                        <option value="Starting" ${j.status === 'Starting' ? 'selected' : ''}>Starting</option>
+                                        <option value="In-Progress" ${j.status === 'In-Progress' ? 'selected' : ''}>In-Progress</option>
+                                        <option value="Finalizing" ${j.status === 'Finalizing' ? 'selected' : ''}>Finalizing</option>
+                                        <option value="Complete" ${j.status === 'Complete' ? 'selected' : ''}>Complete</option>
+                                        <option value="Shipped" ${j.status === 'Shipped' ? 'selected' : ''}>Shipped</option>
+                                        <option value="Aborted" ${j.status === 'Aborted' ? 'selected' : ''}>Aborted</option>
+                                    </select>
+
+                                </div>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="flex gap-3 items-start w-full mb-2.5">
-                        ${imgMarkup}
-                        
-                        <div class="flex-1 min-w-0 flex flex-col h-[120px] justify-between">
+                        <div class="mb-2 p-1.5 rounded-sm bg-slate-100 dark:bg-zinc-950 border border-slate-300/40 dark:border-zinc-800">
+                            <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-tight">Assigned Studio Operator</label>
+                            <select onchange="inlineAssignJobArtist('${j.jobNumber}', this.value)" class="w-full bg-transparent text-xs text-slate-800 dark:text-zinc-300 border-none p-0 focus:ring-0 font-medium cursor-pointer">
+                                ${inlineArtistOptions}
+                            </select>
+                        </div>
 
+                        <div class="flex flex-wrap gap-0.5 mb-2">
+                            ${j.classes && j.classes.length > 0 ? j.classes.map(c => `<span class="bg-slate-200 dark:bg-zinc-800 px-1.5 py-0.5 rounded-sm text-[10px] font-medium text-slate-600 dark:text-zinc-400">#${c}</span>`).join('') : ''}
+                        </div>
+
+                        <!-- Scaled and legible specification parameter labels -->
+                        <div class="grid grid-cols-2 gap-2 bg-slate-100/50 dark:bg-zinc-950/40 p-2 rounded-sm border border-slate-300/30 dark:border-zinc-800 mb-2 text-xs">
                             <div>
-                                <span class="font-mono font-bold text-teal-600 dark:text-teal-400 tracking-wider select-all text-sm">#${j.jobNumber}</span>
-                                <h3 class="text-sm font-bold text-slate-900 dark:text-zinc-200 mt-0.5 truncate" title="${j.jobName}">${j.jobName}</h3>
-                                <p class="text-slate-500 dark:text-zinc-400 text-xs truncate">Client: ${j.clientName || 'N/A'}</p>
+                                <span class="block text-[10px] text-slate-400 uppercase tracking-tight">Timeline Range</span>
+
+                                <span class="font-medium text-xs text-slate-700 dark:text-zinc-300 truncate block">${j.startDate || 'Unset'} &rarr; <span class="${isPastDue ? 'text-red-500 font-bold' : 'text-slate-700 dark:text-zinc-300'}">${j.dueDate || 'Unset'}</span></span>
                             </div>
-
-                            <div class="mt-1 flex items-center gap-1.5">
-                                <span class="w-2 h-2 rounded-full ${badgeColor}"></span>
-                                <select onchange="changeJobStatus('${j.jobNumber}', this.value)" class="bg-transparent border-none p-0 text-xs font-bold text-slate-800 dark:text-zinc-300 focus:ring-0 cursor-pointer">
-                                    <option value="Prework" ${j.status === 'Prework' ? 'selected' : ''}>Prework</option>
-                                    <option value="Starting" ${j.status === 'Starting' ? 'selected' : ''}>Starting</option>
-                                    <option value="In-Progress" ${j.status === 'In-Progress' ? 'selected' : ''}>In-Progress</option>
-                                    <option value="Finalizing" ${j.status === 'Finalizing' ? 'selected' : ''}>Finalizing</option>
-                                    <option value="Complete" ${j.status === 'Complete' ? 'selected' : ''}>Complete</option>
-                                    <option value="Shipped" ${j.status === 'Shipped' ? 'selected' : ''}>Shipped</option>
-                                    <option value="Aborted" ${j.status === 'Aborted' ? 'selected' : ''}>Aborted</option>
-                                </select>
+                            <div>
+                                <span class="block text-[10px] text-slate-400 uppercase tracking-tight">Asset Config</span>
+                                <span class="font-medium text-xs font-mono text-slate-700 dark:text-zinc-300 truncate block">${j.assetCount} items [${j.medium}]</span>
                             </div>
+                            <div class="col-span-2 border-t border-slate-300/30 dark:border-zinc-800 pt-1">
+                                <span class="block text-[10px] text-slate-400 uppercase tracking-tight">Output Format</span>
+                                <span class="font-mono text-slate-700 dark:text-zinc-400 font-medium text-xs block truncate" title="${j.fileType}">${j.fileType || 'Standard Matrix'}</span>
+                            </div>
+                            ${j.materials ? `
+                            <div class="col-span-2 border-t border-slate-300/30 dark:border-zinc-800 pt-1">
+                                <span class="block text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-tight">Material Resource Needs</span>
+                                <span class="text-xs text-zinc-500 dark:text-zinc-400 block truncate" title="${j.materials}">${j.materials}</span>
+                            </div>` : ''}
                         </div>
-
                     </div>
 
-                    <div class="mb-2 p-1.5 rounded-sm bg-slate-100 dark:bg-zinc-950 border border-slate-300/40 dark:border-zinc-800">
-                        <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-tight">Assigned Studio Operator</label>
-                        <select onchange="inlineAssignJobArtist('${j.jobNumber}', this.value)" class="w-full bg-transparent text-xs text-slate-800 dark:text-zinc-300 border-none p-0 focus:ring-0 font-medium cursor-pointer">
-                            ${inlineArtistOptions}
-                        </select>
-                    </div>
+                    <!-- Roomy scaled text container block dedicated to multi-line comprehensive directives -->
 
-                    <div class="flex flex-wrap gap-0.5 mb-2">
-                        ${j.classes && j.classes.length > 0 ? j.classes.map(c => `<span class="bg-slate-200 dark:bg-zinc-800 px-1 py-0.5 rounded-sm text-[10px] font-medium text-slate-600 dark:text-zinc-400">#${c}</span>`).join('') : ''}
-                    </div>
-
-                    <!-- RESTRUCTURED SPECIFICATIONS MATRIX -->
-                    <div class="grid grid-cols-2 gap-2 bg-slate-100/50 dark:bg-zinc-950/40 p-2 rounded-sm border border-slate-300/30 dark:border-zinc-800 mb-2">
-                        <div>
-                            <span class="block text-[10px] text-slate-400 uppercase tracking-tight">Timeline Range</span>
-                            <span class="font-medium text-xs text-slate-700 dark:text-zinc-300">${j.startDate || 'Unset'} &rarr; <span class="${isPastDue ? 'text-red-500 font-bold' : 'text-slate-700 dark:text-zinc-300'}">${j.dueDate || 'Unset'}</span></span>
-                        </div>
-
-                        <div>
-                            <span class="block text-[10px] text-slate-400 uppercase tracking-tight">Asset Config</span>
-                            <span class="font-medium text-xs font-mono text-slate-700 dark:text-zinc-300">${j.assetCount} matching [${j.medium}]</span>
-                        </div>
-                        <div class="col-span-2 border-t border-slate-300/30 dark:border-zinc-800 pt-1">
-                            <span class="block text-[10px] text-slate-400 uppercase tracking-tight">Output Format</span>
-                            <span class="font-mono text-slate-700 dark:text-zinc-400 font-medium text-xs block truncate" title="${j.fileType}">${j.fileType || 'Standard Matrix'}</span>
-                        </div>
-                        ${j.materials ? `
-                        <div class="col-span-2 border-t border-slate-300/30 dark:border-zinc-800 pt-1">
-                            <span class="block text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-tight">Material Resource Needs</span>
-                            <span class="text-xs text-zinc-500 dark:text-zinc-400 block break-words" title="${j.materials}">${j.materials}</span>
-                        </div>` : ''}
-                    </div>
-
-                    <!-- DEDICATED HIGH-VISIBILITY LONG NOTES COMPONENT REGION -->
-                    <div class="p-2 bg-slate-100 dark:bg-zinc-950 border border-slate-300/60 dark:border-zinc-800 rounded-sm flex-1 flex flex-col min-h-[56px]">
+                    <div class="p-2 bg-slate-100 dark:bg-zinc-950 border border-slate-300/60 dark:border-zinc-800 rounded-sm h-[95px] flex flex-col justify-start">
                         <span class="block text-[10px] text-teal-600 dark:text-teal-500 font-bold uppercase tracking-wider mb-0.5">Comprehensive Production Notes</span>
-                        <div class="text-xs text-slate-700 dark:text-zinc-300 overflow-y-auto max-h-24 whitespace-pre-wrap break-words leading-relaxed select-text">${j.notes || '<span class="text-slate-400 italic">No notes provided for this production track.</span>'}</div>
-
+                        <div class="text-xs text-slate-700 dark:text-zinc-300 overflow-y-auto pr-0.5 whitespace-pre-wrap break-words leading-relaxed select-text flex-1">${j.notes || '<span class="text-slate-400 italic">No notes provided for this production track.</span>'}</div>
                     </div>
                 `;
                 container.appendChild(card);
@@ -1260,10 +1283,10 @@
                 counterLabel.classList.remove('hidden');
             } else {
                 counterLabel.classList.add('hidden');
+
             }
 
             container.innerHTML = '';
-
             if(deadJobs.length === 0) {
                 container.innerHTML = '<p class="text-slate-400 text-center py-4 italic text-xs">The graveyard is empty.</p>';
                 return;
@@ -1280,10 +1303,10 @@
                         </div>
                     </div>
                     <div class="flex items-center space-x-1 flex-shrink-0">
+
                         <button onclick="recoverFromGraveyard('${j.jobNumber}')" class="px-2 py-0.5 text-[10px] bg-slate-300 dark:bg-zinc-800 hover:bg-teal-600 hover:text-white rounded-sm transition">
                             Restore
                         </button>
-
                         <button onclick="permanentlyDeleteJob('${j.jobNumber}')" class="p-0.5 text-slate-400 hover:text-red-500 font-bold text-sm">&times;</button>
                     </div>
                 `;
@@ -1300,31 +1323,67 @@
             renderGraveyard();
         }
 
+
+        // EXPANDED UNIFIED SPREADSHEET BACKUP SYSTEM ENGINE
         function exportToCsv() {
-            if(database.jobs.length === 0) return;
-            const headers = ["JobNumber", "JobName", "ClientName", "ClassesKeywords", "StartDate", "DueDate", "AssetCount", "FinishedFileType", "MediumOutput", "MaterialNeeds", "ProductionNotes", "PipelineStatus", "IsArchived", "AssignedArtistId"];
+            const separator = ",";
+            const rowTerminator = "\r\n";
+            let csvContent = "data:text/csv;charset=utf-8,";
+            
+            csvContent += "RecordType,Field1,Field2,Field3,Field4,Field5,Field6,Field7,Field8,Field9,Field10,Field11,Field12,Field13,Field14,Field15" + rowTerminator;
 
-            let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\r\n";
+            // 1. Serialize checked-in artist profiles
+            database.artists.forEach(a => {
+                const row = [
+                    "ARTIST", sanitizeCsvField(a.id), sanitizeCsvField(a.emoji), sanitizeCsvField(a.name),
+                    sanitizeCsvField(a.phone), sanitizeCsvField(a.email), sanitizeCsvField(a.status),
+                    sanitizeCsvField(a.hours), sanitizeCsvField(a.classes), sanitizeCsvField(a.notes),
+                    "", "", "", "", ""
+                ];
+                csvContent += row.join(separator) + rowTerminator;
+            });
 
+
+            // 2. Serialize global tracking tasks
+            database.tasks.forEach(t => {
+                const row = [
+                    "TASK", sanitizeCsvField(t.id), sanitizeCsvField(t.name), sanitizeCsvField(t.due),
+                    sanitizeCsvField(t.desc), sanitizeCsvField(t.materials), sanitizeCsvField(t.notes),
+                    "", "", "", "", "", "", "", ""
+                ];
+                csvContent += row.join(separator) + rowTerminator;
+            });
+
+            // 3. Serialize sticky bulletin updates
+            database.bulletins.forEach(b => {
+                const row = [
+                    "BULLETIN", sanitizeCsvField(b.id), sanitizeCsvField(b.text),
+                    "", "", "", "", "", "", "", "", "", "", "", ""
+                ];
+                csvContent += row.join(separator) + rowTerminator;
+            });
+
+
+            // 4. Serialize active and archived pipeline job cards
             database.jobs.forEach(j => {
                 const safeClasses = j.classes ? j.classes.join(";") : "";
-                const rowData = [
-                    sanitizeCsvField(j.jobNumber), sanitizeCsvField(j.jobName), sanitizeCsvField(j.clientName),
+                const row = [
+                    "JOB", sanitizeCsvField(j.jobNumber), sanitizeCsvField(j.jobName), sanitizeCsvField(j.clientName),
                     sanitizeCsvField(safeClasses), sanitizeCsvField(j.startDate), sanitizeCsvField(j.dueDate),
                     j.assetCount, sanitizeCsvField(j.fileType), sanitizeCsvField(j.medium), sanitizeCsvField(j.materials),
-                    sanitizeCsvField(j.notes), sanitizeCsvField(j.status), j.archived ? 1 : 0, sanitizeCsvField(j.assignedArtistId || "")
+                    sanitizeCsvField(j.notes), sanitizeCsvField(j.status), j.archived ? "1" : "0", sanitizeCsvField(j.assignedArtistId || "")
                 ];
-                csvContent += rowData.join(",") + "\r\n";
+                csvContent += row.join(separator) + rowTerminator;
             });
 
             const encodedUri = encodeURI(csvContent);
             const downloadAnchor = document.createElement("a");
             downloadAnchor.setAttribute("href", encodedUri);
-            downloadAnchor.setAttribute("download", `JIDOKA_TRACKER_EXPORT_${new Date().toISOString().slice(0,10)}.csv`);
+            downloadAnchor.setAttribute("download", `STUDIO_WORKSPACE_BACKUP_${new Date().toISOString().slice(0,10)}.csv`);
             document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
-
             document.body.removeChild(downloadAnchor);
+
         }
 
         function sanitizeCsvField(val) {
@@ -1343,8 +1402,8 @@
                 c = text[i];
                 if (c === '"') {
                     if (q && text[i+1] === '"') { p += '"'; i++; }
-
                     else { q = !q; }
+
                 } else if (c === ',' && !q) {
                     r.push(p); p = '';
                 } else if ((c === '\r' || c === '\n') && !q) {
@@ -1363,13 +1422,13 @@
             const overlay = document.createElement('div');
             overlay.className = "fixed inset-0 bg-neutral-950/80 backdrop-blur-xs z-50 flex items-center justify-center p-4";
             overlay.innerHTML = `
-
                 <div class="bg-slate-100 dark:bg-zinc-900 p-5 rounded-md max-w-sm w-full space-y-3 text-xs text-left shadow-2xl border border-slate-300 dark:border-zinc-800">
-                    <h3 class="text-sm font-bold text-slate-900 dark:text-zinc-300">Import Configuration Sync</h3>
-                    <p class="text-slate-500 dark:text-zinc-400">Choose how the system imports data lines:</p>
+
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-zinc-300">Import Workspace Configuration</h3>
+                    <p class="text-slate-500 dark:text-zinc-400">Choose how the system processes incoming backup lines across all modules:</p>
                     <div class="grid grid-cols-2 gap-2 pt-1">
                         <button id='btnAppend' class="p-2 bg-slate-200 dark:bg-zinc-800 hover:bg-teal-600 hover:text-white rounded-sm font-semibold transition text-center dark:text-zinc-300">Append Rows</button>
-                        <button id='btnReplace' class="p-2 bg-red-500/10 text-red-500 hover:bg-red-600 hover:text-white rounded-sm font-semibold transition text-center">Replace Core</button>
+                        <button id='btnReplace' class="p-2 bg-red-500/10 text-red-500 hover:bg-red-600 hover:text-white rounded-sm font-semibold transition text-center">Wipe & Replace All</button>
                     </div>
                     <div class="flex justify-end pt-1">
                         <button id='btnCancelImport' class="text-[11px] text-slate-400 hover:text-slate-200">Abort Import</button>
@@ -1383,59 +1442,108 @@
             document.getElementById('btnReplace').onclick = () => { executeImportSequence(file, 'replace'); document.body.removeChild(overlay); };
         }
 
-
         function executeImportSequence(file, mode) {
+
             const reader = new FileReader();
             reader.onload = function(e) {
                 const text = e.target.result;
                 const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
                 if(lines.length <= 1) return;
 
-                let parsedJobs = [];
+                if (mode === 'replace') {
+                    database.artists = [];
+                    database.tasks = [];
+                    database.bulletins = [];
+                    database.jobs = [];
+                }
+
+                let artistCounts = 0, taskCounts = 0, bulletinCounts = 0, jobCounts = 0;
+
                 for(let i = 1; i < lines.length; i++) {
                     const rowFields = parseCsvLine(lines[i]);
                     if(rowFields.length < 2) continue;
 
-                    const classRawStr = rowFields[3] || "";
-                    const classesArr = classRawStr ? classRawStr.split(";").map(c => c.trim()).filter(Boolean) : [];
 
-                    parsedJobs.push({
-                        jobNumber: rowFields[0] ? rowFields[0].trim() : `GEN-${Date.now()}-${i}`,
-                        jobName: rowFields[1] ? rowFields[1].trim() : "Untitled Import",
-                        clientName: rowFields[2] || "",
+                    const typeTag = rowFields[0].trim().toUpperCase();
 
-                        classes: classesArr,
-                        startDate: rowFields[4] || "",
-                        dueDate: rowFields[5] || "",
-                        assetCount: parseInt(rowFields[6]) || 0,
-                        fileType: rowFields[7] || "",
-                        medium: rowFields[8] || "Both",
-                        materials: rowFields[9] || "",
-                        notes: rowFields[10] || "",
-                        status: rowFields[11] || "Prework",
-                        archived: rowFields[12] === "1" ? true : false,
-                        assignedArtistId: rowFields[13] ? rowFields[13].trim() : "",
-                        imageBase64: ""
-                    });
-                }
+                    if (typeTag === 'ARTIST') {
+                        const parsedId = rowFields[1] ? rowFields[1].trim() : Date.now().toString() + i;
+                        const artistObj = {
+                            id: parsedId, emoji: rowFields[2] || "🎨", name: rowFields[3] || "Imported Artist",
+                            phone: rowFields[4] || "", email: rowFields[5] || "", status: rowFields[6] || "Available",
+                            hours: rowFields[7] || "", classes: rowFields[8] || "", notes: rowFields[9] || ""
+                        };
+                        const existingIdx = database.artists.findIndex(a => a.id === parsedId);
+                        if (existingIdx !== -1) database.artists[existingIdx] = artistObj;
+                        else database.artists.push(artistObj);
+                        artistCounts++;
+                    } 
+                    else if (typeTag === 'TASK') {
+                        const parsedId = rowFields[1] ? rowFields[1].trim() : Date.now().toString() + i;
+                        const taskObj = {
+                            id: parsedId, name: rowFields[2] || "Imported Task", due: rowFields[3] || "",
+                            desc: rowFields[4] || "", materials: rowFields[5] || "", notes: rowFields[6] || ""
 
-                if(mode === 'replace') { database.jobs = parsedJobs; }
-                else {
-                    parsedJobs.forEach(newJob => {
-                        const existingIdx = database.jobs.findIndex(j => j.jobNumber === newJob.jobNumber);
+                        };
+                        const existingIdx = database.tasks.findIndex(t => t.id === parsedId);
+                        if (existingIdx !== -1) database.tasks[existingIdx] = taskObj;
+                        else database.tasks.push(taskObj);
+                        taskCounts++;
+                    } 
+                    else if (typeTag === 'BULLETIN') {
+                        const parsedId = rowFields[1] ? rowFields[1].trim() : Date.now().toString() + i;
+                        const bulletinObj = { id: parsedId, text: rowFields[2] || "Empty Bullet Note" };
+                        const existingIdx = database.bulletins.findIndex(b => b.id === parsedId);
+                        if (existingIdx !== -1) database.bulletins[existingIdx] = bulletinObj;
+                        else database.bulletins.push(bulletinObj);
+                        bulletinCounts++;
+                    } 
+                    else if (typeTag === 'JOB') {
+                        const jobNumCode = rowFields[1] ? rowFields[1].trim() : `GEN-${Date.now()}-${i}`;
+                        const classRawStr = rowFields[4] || "";
+                        const classesArr = classRawStr ? classRawStr.split(";").map(c => c.trim()).filter(Boolean) : [];
 
-                        if(existingIdx !== -1) database.jobs[existingIdx] = newJob;
-                        else database.jobs.push(newJob);
-                    });
+
+                        const jobObj = {
+                            jobNumber: jobNumCode,
+                            jobName: rowFields[2] ? rowFields[2].trim() : "Untitled Import",
+                            clientName: rowFields[3] || "",
+                            classes: classesArr,
+                            startDate: rowFields[5] || "",
+                            dueDate: rowFields[6] || "",
+                            assetCount: parseInt(rowFields[7]) || 1,
+                            fileType: rowFields[8] || "",
+                            medium: rowFields[9] || "Both",
+                            materials: rowFields[10] || "",
+                            notes: rowFields[11] || "",
+                            status: rowFields[12] || "Prework",
+                            archived: rowFields[13] === "1",
+                            assignedArtistId: rowFields[14] ? rowFields[14].trim() : "",
+                            imageBase64: ""
+                        };
+
+                        const existingIdx = database.jobs.findIndex(j => j.jobNumber === jobNumCode);
+
+                        if (existingIdx !== -1) {
+                            if (!jobObj.imageBase64 && database.jobs[existingIdx].imageBase64) {
+                                jobObj.imageBase64 = database.jobs[existingIdx].imageBase64;
+                            }
+                            database.jobs[existingIdx] = jobObj;
+                        } else {
+                            database.jobs.push(jobObj);
+                        }
+                        jobCounts++;
+                    }
                 }
 
                 persistState();
                 refreshSystemBoardViews();
                 document.getElementById('importCsvInput').value = '';
-                showToast("Synchronization Success", `Processed ${parsedJobs.length} records.`);
+                showToast("Workspace Synced Successfully", `Loaded: ${artistCounts} artists, ${taskCounts} tasks, ${bulletinCounts} notes, and ${jobCounts} jobs.`);
             };
             reader.readAsText(file);
         }
+// Artdoka Copyright SPM 2026
     </script>
 </body>
 </html>
